@@ -1,5 +1,9 @@
+from werkzeug.security import safe_str_cmp
 from flask_restful import Resource, reqparse
-from flask_jwt import jwt_required
+from flask_jwt_extended import (
+     jwt_required, create_access_token, 
+     create_refresh_token, get_jwt_claims,
+     jwt_optional, get_jwt_identity)
 
 from models.user import UserModel
 
@@ -37,15 +41,18 @@ class UserRegister(Resource):
 
 class User(Resource):
     
-    @jwt_required()
+    @jwt_required
     def get(self, user_id):
         user = UserModel.find_by_id(user_id)
         if user:
             return user.json()
         return {"message": "User not found!"}, 404
 
-    @jwt_required()
+    @jwt_required
     def delete(self, user_id):
+        claims = get_jwt_claims()
+        if not claims["is_admin"]:
+            return {"message": "Admin privileges required!"}, 401
         user = UserModel.find_by_id(user_id)
         if user:
             user.delete()
@@ -55,6 +62,27 @@ class User(Resource):
     
 class UserList(Resource):
 
-    @jwt_required()
+    @jwt_optional
     def get(self):
-        return {"users": [user.json() for user in UserModel.find_all()]}
+        user_id = get_jwt_identity()
+        users = [user.json() for user in UserModel.find_all()]
+        if user_id:
+            return {"users": users}
+        return {"users": [user["username"] for user in users],
+                "message": "For more details kindly login"        
+        }
+
+
+class UserLogin(Resource):
+
+    def post(self):
+        data = _user_parser.parse_args()
+
+        user = UserModel.find_by_username(data["username"])
+        if user and safe_str_cmp(user.password, data["password"]):
+            access_token = create_access_token(identity=user.id, fresh=True)
+            refresh_token = create_refresh_token(user.id)
+
+            return {"access_token": access_token, "refresh_token": refresh_token}, 200
+
+        return {"message": "Invalid Credentials!"}, 401
