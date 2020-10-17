@@ -31,7 +31,7 @@ class Item(Resource):
             return {"message": "Item already exist!"}, 400
 
         data = Item.parser.parse_args()
-        item = ItemModel(iname, data["price"], data["store_id"])
+        item = ItemModel(iname, **data)
 
         item.save_to_db()
 
@@ -45,7 +45,7 @@ class Item(Resource):
         if item:
             item.price = data["price"]
         else:
-            item = ItemModel(iname, data["price"], data["store_id"])
+            item = ItemModel(iname, **data)
         item.save_to_db()
 
         return {"message": "Item Updated!", "item": item.json()} 
@@ -63,4 +63,4 @@ class ItemList(Resource):
 
     @jwt_required()
     def get(self):
-        return {"items": [item.json() for item in ItemModel.query.all()]}
+        return {"items": [item.json() for item in ItemModel.find_all()]}
