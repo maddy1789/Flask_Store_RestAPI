@@ -1,9 +1,12 @@
-from werkzeug.security import safe_str_cmp
+
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import (
-     jwt_required, create_access_token, 
-     create_refresh_token, get_jwt_claims,
-     jwt_optional, get_jwt_identity)
+                                jwt_required,
+                                fresh_jwt_required, 
+                                get_jwt_claims,
+                                jwt_optional, 
+                                get_jwt_identity
+                            )
 
 from models.user import UserModel
 
@@ -24,6 +27,7 @@ _user_parser.add_argument("password",
 
 class UserRegister(Resource):
 
+    @fresh_jwt_required
     def post(self):
         data = _user_parser.parse_args()
 
@@ -73,16 +77,3 @@ class UserList(Resource):
         }
 
 
-class UserLogin(Resource):
-
-    def post(self):
-        data = _user_parser.parse_args()
-
-        user = UserModel.find_by_username(data["username"])
-        if user and safe_str_cmp(user.password, data["password"]):
-            access_token = create_access_token(identity=user.id, fresh=True)
-            refresh_token = create_refresh_token(user.id)
-
-            return {"access_token": access_token, "refresh_token": refresh_token}, 200
-
-        return {"message": "Invalid Credentials!"}, 401

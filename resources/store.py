@@ -1,7 +1,10 @@
 from flask_restful import Resource, reqparse
-from flask_jwt_extended import (
-     jwt_required, get_jwt_claims, jwt_optional, get_jwt_identity) 
-
+from flask_jwt_extended import (jwt_required, 
+                                fresh_jwt_required,
+                                get_jwt_claims, 
+                                jwt_optional, 
+                                get_jwt_identity
+                            )
 from models.store import StoreModel
 
 class Store(Resource):
@@ -13,7 +16,7 @@ class Store(Resource):
             return store.json()
         return {"message": "Store Not Found!"}, 404
 
-    @jwt_required
+    @fresh_jwt_required
     def post(self, sname):
         if StoreModel.find_by_name(sname):
             return {"message": "Store already exist!"}, 400
